@@ -1,0 +1,218 @@
+body {
+	background: url("../assets/bowlin.png") no-repeat center center fixed;
+    background-size: cover;
+}
+
+.mainwrapper {
+	width: 80%;
+	min-width: 600px;
+	background-color: rgba(0,0,0,0.4);
+	margin: 0 auto;
+	height: 80%;
+	min-height: 600px;
+	font-family: 'Lato', sans-serif;
+}
+
+.mainwrapper h1 {
+	font-size: 3em;
+	color: #fff;
+	font-family: 'Faster One', cursive;
+	text-align: center;
+}
+
+.align{
+	text-align: center;
+}
+
+/* Buttons */
+
+.button {
+	font-size: 1em;
+	color: #fff;
+	padding: 3px;
+	border: 1px solid #fff;
+	border-radius: 2px;
+	display: inline-block;
+}
+
+#start {
+	background-color: #140984;
+	width: 50px;
+	border-radius: 0px !important;
+	margin: 0 auto;
+}
+
+#reset {
+	background-color: #b30000;
+	margin: 0 auto;
+}
+
+#bowlButton {
+	background-color: #140984;
+	display: inline-block;
+	margin: 0 auto;
+}
+
+/* Setup area */
+
+#setup {
+	width: 60%;
+	margin: 0 auto;
+}
+
+#setup h3 {
+	font-size: 2em;
+	color: #fff;
+}
+
+input#players {
+	color: #fff;
+	width: 50px;
+	height: 50px;
+	font-size: 2em;
+	text-align: center;
+	border: 1px solid #fff;
+	background: transparent;
+	margin: 0 auto;
+}
+
+/* Game area */
+
+.game {
+	width: 80%;
+	margin: 0 auto;
+	height: auto;
+}
+
+#gameWrap {
+	width: 40%;
+	float: right;
+	text-align: center;
+	display: inline-block;
+}
+
+.pinsWrap {
+	display: inline-block;
+	text-align: center;
+}
+
+.pinRow {
+	max-height: 20px;
+}
+
+.headline {
+	width:100%;
+	color: #fff;
+	height: 1.5em;
+}
+
+/* Scoreboard */
+
+#boardWrap {
+	width: 60%;
+	font-size: 0.8em;
+	display: inline-block;
+	background-color: rgba(0,0,0,.6);
+	color: #fff;
+	text-align: center;
+}
+
+#board {
+	width:100%; 
+	border: 1px solid #fff;
+}
+
+.playerThrowRow {
+	height: 30px;
+	border: 1px solid #fff;
+}
+
+.playerScoreRow {
+	height: 30px;
+	border-bottom: 1px solid #fff;
+}
+
+.box {
+	width: 4%;
+	border: 0px;
+	border-left: 1px solid #fff;
+}
+.nbox {
+	width: 4%;
+	border: 1px solid #fff;
+}
+.scorebox {
+	width: 4%;
+	border-left: 1px solid #fff;
+	border-bottom: 1px solid #fff;
+}
+.nscorebox {
+	width: 4%;
+	border-bottom: 1px solid #fff;
+}
+
+/* Lane */
+
+.lane {
+	background: url('../assets/lanetile.png') repeat-y;
+	width: 200px;
+	height: 350px;
+	margin: 0 auto;
+	position: relative;
+}
+
+.markers {
+	background: url('../assets/posoverlay.png') no-repeat;
+	height: 40px;
+	width: 100%;
+	position: absolute;
+	left: 0px;
+	bottom: 0px;
+	display: inline-block;
+}
+
+.angles {
+	background: url('../assets/angles.png') no-repeat center;
+	height: 40px;
+	width: 100%;
+	border: none;
+	margin: 0 auto;
+	display: inline-block;
+}
+
+/* Slider */
+
+input[type=range] {
+	-webkit-appearance: none;
+	display: inline-block;
+	cursor: pointer;
+	background: transparent;
+}
+
+input[type=range]:focus{
+	outline: none;
+}
+
+input[type=range]#bowlPosition::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	height: 30px;
+	width: 30px;
+	border-radius: 15px;
+	border: none;
+	background-color: #000;
+}
+
+input[type=range]#bowlPosition {
+	width: 100%;
+}
+
+input[type=range]#bowlAngle {
+	width: 25%;
+}
+
+input[type=range]#bowlAngle::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	height: 30px;
+	width: 2px;
+	background-color: #098452;
+}

@@ -1,0 +1,449 @@
+<!doctype html>
+<head>
+	<meta charset="utf-8">
+	<title>Let's Go Bowling</title>
+	<link rel="stylesheet" href="../bowling/assets/style.css" type="text/css">
+	<link href='https://fonts.googleapis.com/css?family=Faster+One|Lato' rel='stylesheet' type='text/css'>
+</head>
+<body>
+	<script type="text/javascript">
+	  //this function contains the game logic including setup
+	  var bowling = function(players){
+	  	//hide the game setup environment
+	  	var setup = document.getElementById('setup');
+	  	setup.style.display = "none";
+
+	  	//build a scoreboard with enough room for each player, according to a ten-frame game.
+	  	var boardWrap = document.getElementById('boardWrap');
+	  	var scoreboard = document.createElement('table');
+	  	scoreboard.id = "board";
+
+	  	//we'll use an array to store and access score according to the player's number, another to track strikes, and a third to log the strike's turn
+	  	var gameScore = [];
+	  	var playerThrows = [];
+	  	var playerThrowScores = [];
+	  	var strike = [];
+	  	var spare = [];
+
+	  	for (i=1; i<=players; i++){
+	  		gameScore[i] = 0;
+	  		playerThrows[i] = 0;
+	  		playerThrowScores[i] = [];
+	  		strike[i] = [];
+	  		spare[i] = [];
+	  		var throwRow = document.createElement('tr');
+	  		var scoreRow = document.createElement('tr');
+	  		scoreRow.className  = "playerScoreRow";
+	  		throwRow.className = "playerThrowRow";
+	  			for (j=0; j<=20; j++){
+	  				var col = document.createElement('td');
+	  				var col2 = document.createElement('td');
+	  				if (j===20){
+	  					col.className = "nbox";
+	  					col2.className = "nscorebox";
+	  				}
+	  				else if (j===18){
+	  					col.className = "nbox";
+	  					col2.className = "scorebox";
+	  				}
+	  				else if (j%2===0) {
+	  					col.className = "box";
+	  					col2.className = "scorebox";
+	  				}
+	  				else {
+	  					col.className = "nbox";
+	  					col2.className = "nscorebox";
+	  				};
+	  				col.id = (i.toString() + j.toString());
+	  				col2.id = (i.toString() + j.toString() + "score");
+	  				throwRow.appendChild(col);
+	  				scoreRow.appendChild(col2);
+	  			};
+	  		scoreboard.appendChild(throwRow);
+	  		scoreboard.appendChild(scoreRow);
+	  	};
+	  	boardWrap.appendChild(scoreboard);
+
+	  	//build a place to play the game
+	  	var game = document.getElementById('gameWrap');
+	  	var lane = document.createElement('div');
+	  	lane.className = "lane";
+	  	game.appendChild(lane);
+
+	  	//pins, an array as data, represented by a series of empty divs at the top of the lane
+		var pins = [[0,0,1,0,1,0,1,0,1,0,0],[0,0,0,1,0,1,0,1,0,0,0],[0,0,0,0,1,0,1,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0]];
+	  	var pinsWrap = document.createElement('div');
+	  	pinsWrap.className = "pinsWrap";
+	  	for(p=0; p<4; p++){
+	  		var pinRow = document.createElement('div');
+	  		pinRow.className = "pinRow";
+	  		pinNumber = pins[p].length;
+	  		for(h=0; h<pinNumber; h++){
+		  			var pinSpace = document.createElement('span');
+		  			pinSpace.className = "pinSpace";
+		  			pinSpace.id = ("pin" + p.toString() + h.toString());
+		  			pinRow.appendChild(pinSpace);
+	  		};
+	  		pinsWrap.appendChild(pinRow);
+	  	};
+	  	lane.appendChild(pinsWrap);
+
+	  	//bowling controls
+	  	var markers = document.createElement('div');
+	  	markers.className = "markers";
+	  	lane.appendChild(markers);
+
+		var bowlPosition = document.createElement('input');
+	  	bowlPosition.setAttribute('type','range');
+	  	bowlPosition.setAttribute('min', '0');
+	  	bowlPosition.setAttribute('max', '110');
+	  	bowlPosition.className = "slider";
+	  	bowlPosition.id = "bowlPosition";
+	  	markers.appendChild(bowlPosition);
+	  	bowlPosition.style.display = "none";
+
+	  	var alignControls = document.createElement('div');
+	  	alignControls.className = "align";
+	  	game.appendChild(alignControls);
+
+	  	var angles = document.createElement('div');
+	  	angles.className = "angles";
+	  	alignControls.appendChild(angles);
+
+		var bowlAngle = document.createElement('input');
+	  	bowlAngle.setAttribute('type','range');
+	  	bowlAngle.setAttribute('min', '-0.8');
+	  	bowlAngle.setAttribute('max', '0.8');
+	  	bowlAngle.setAttribute('step', '.13333');
+	  	bowlAngle.className = "slider";
+	  	bowlAngle.id = "bowlAngle";
+	  	angles.appendChild(bowlAngle);
+	  	bowlAngle.style.display = "none";
+
+	  	var bowlButton = document.createElement('input');
+	  	bowlButton.setAttribute('type', 'submit');
+	  	bowlButton.className = "button"
+	  	bowlButton.id = "bowlButton";
+	  	alignControls.appendChild(bowlButton);
+
+
+	  	//set up conditions for a new game
+	 	var turn = 0;
+		var turnScore = 0;
+		var turnThrows = 0;
+		var currentPlayer = 0;
+		var strikeOrSpareThisTurn = null;
+
+		//easier to keep running than the machines in real life
+		var pinsReset = function() {
+			pins = [[0,0,1,0,1,0,1,0,1,0,0],[0,0,0,1,0,1,0,1,0,0,0],[0,0,0,0,1,0,1,0,0,0,0],[0,0,0,0,0,1,0,0,0,0,0]];
+		};
+
+		//to represent the pins still standing before and after turns/throws
+		var pinsDisplay = function(){
+			for (k=0; k<pins.length; k++){
+				var thisPinRow = pins[k];
+				for (l=0; l<thisPinRow.length; l++){
+					if (thisPinRow[l]===1){
+						document.getElementById("pin" + k.toString() + l.toString()).innerHTML = "<img src=" + "../bowling/assets/pin.png" + ">";
+					}
+					else if (thisPinRow[l]===2){
+						document.getElementById("pin" + k.toString() + l.toString()).innerHTML = "<img src=" + "../bowling/assets/space.png" + ">";
+					};
+				};
+			};
+		};
+
+		//since we're before the first turn, nextTurn is the first function to happen. We're incrementing up the counters for turn and player, and preparing for the first player's first throw
+		var nextTurn = function (){
+			if (currentPlayer < players){
+				currentPlayer += 1;
+			}
+			else {
+				currentPlayer = 1;
+				turn += 2;
+			};
+			bowlPosition.style.display = "inline-block";
+			bowlAngle.style.display = "inline-block";
+			pinsReset();
+			pinsDisplay();
+			strikeOrSpareThisTurn = 0;
+	 		bowlButton.setAttribute('value', 'Bowl');
+	 		bowlButton.onclick = function() {bowlThrow()};
+	  		document.getElementById('partTwo').innerHTML = "throw " + (turnThrows+1).toString() + ".";
+			document.getElementById('partOne').innerHTML = "Player " + currentPlayer.toString() + "; ";
+		};
+
+		//a little function to find and announce the winner with the highest score, which we'll call after the last player's last turn
+		var gameOver = function(){
+			var highestScore = 0;
+			var winners = [];
+			//first find the highest score
+			for (m=0; m<gameScore.length; m++){
+				if (gameScore[m] > highestScore){
+					highestScore = gameScore[m];
+				};
+			};
+			//then find all the players who scored it
+			for (e=0; e<gameScore.length; e++){
+				if (gameScore[e] === highestScore){
+					winners.push(e);
+				};
+			};
+			//and announce them
+			if (winners.length > 1){
+				document.getElementById('partOne').innerHTML = "The winners are Player " + winners.toString() + "!";
+				document.getElementById('partTwo').innerHTML = "";
+			}
+			else {
+			document.getElementById('partOne').innerHTML = "The winner is Player " + winners.toString() + "!";
+			document.getElementById('partTwo').innerHTML = "";
+			};
+			document.getElementById('reset').setAttribute('value', 'Play Again');
+		};
+
+		//this is the core action of the game. scoring is based on the information at http://slocums.homestead.com/gamescore.html, but without fouls or splits. our basic logic here is, throw the ball, count which pins are knocked down, save that information in the pins array, and put the right mark in the right box, then if you haven't thrown twice or knocked down all the pins, throw again. if you either knock down all the pins or throw twice, it's time to let the next player have their next turn. unless it's the tenth turn, which is three balls if you bowl 10 in your first two.
+	  	var bowlThrow = function(){
+	  			var pos = document.getElementById('bowlPosition').value;
+	  			pos = Math.round(pos / 11)
+	  			var ang = document.getElementById('bowlAngle').value;
+	  			var mark = null;
+	  			var throwScore = 0;
+	  			var throwID = turn + turnThrows;
+	  			playerThrows[currentPlayer] += 1;
+	  			//here's how a throw works
+	  			var throwHitPins = function(){
+	  				//array to keep track of where the pins go
+	  				var knockedPins = [[0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0]];
+	  				//for math purposes
+	  				var rowCount = 5;
+	  				//check to see if the ball hits the pins
+	  				for (r=3; r>=0; r--){
+	  					rowCount += 1;
+	  					var hitRow = pins[r];
+	  					var knockedPinsRow = knockedPins[r];
+	  					//find out where the ball is this row
+	  					var ballPos = (Math.round(pos + (rowCount * ang)));
+	  					//make the ball wider than 1 column because bowling balls are larger than pins
+	  					if (ang < 0){
+	  						var ballLeft = ballPos - 2;
+	  						var ballRight = ballPos;
+	  					}
+	  					else {
+	  						var ballLeft = ballPos;
+	  						var ballRight = ballPos + 2;
+	  					};
+	  					//compare the ball to this row in the pins array
+	  					for (c=ballLeft; c<=ballRight; c++){
+		  					if (hitRow[c]===1){
+		  						throwScore += 1;
+		  						hitRow[c] = 2;
+		  						//the hit pin goes flying
+		  						var pinsChance = (Math.round(Math.random()*4));
+		  						var pinsPos = null;
+		  						if (ang > 0){
+		  							pinsPos = (ballPos + pinsChance);
+		  							knockedPinsRow[pinsPos] = 1;
+		  						}
+		  						else if (ang === 0){
+		  							knockedPinsRow[ballPos] = 1;
+		  						}
+		  						else {
+		  							pinsPos = (ballPos - pinsChance);
+		  							knockedPinsRow[pinsPos] = 1;
+		  						};
+		  					};
+		  				};
+		  				//now see if there are any pins that hit the pins
+		  				checkPinsRow = knockedPins[ r + 1 ];
+		  				for (d=0; d<hitRow.length; d++){
+	  						if ((checkPinsRow[d]===1) && (hitRow[d]===1)){
+	  							throwScore += 1;
+	  							hitRow[d] = 2;
+	  							//now *those* pins go flying
+	  							var pinsChance2 = Math.round(Math.random()*4);
+	  							if (ang > 0 ){
+	  								knockedPinsRow[d + pinsChance2] = 1;
+	  							}
+	  							else if (ang === 0){
+		  							knockedPinsRow[d] = 1;
+		  						}
+		  						else {
+	  								knockedPinsRow[d - pinsChance2] = 1;
+		  						};
+		  					}
+		  					//otherwise the pins currently in motion keep moving
+		  					else if ((checkPinsRow[d]===1) && (hitRow[d]!=1)){
+		  						if (ang > 0){
+		  							pinsPos = (d + 1)
+		  							knockedPinsRow[pinsPos] = 1;
+		  						}
+		  						else if (ang === 0){
+		  							knockedPinsRow[d] = 1;
+		  						}
+		  						else {
+		  							pinsPos = (d - 1);
+		  							knockedPinsRow[pinsPos] = 1;
+		  						};
+		  					};
+	  					};
+	  				};
+	  			};
+	  			//our physics modeling is not so good so let's just offer a chance of a strike
+	  			strikeChance = Math.random();
+	  			if ((turnThrows != 1) && (strikeChance > .93)){
+	  				throwScore = 10;
+					pins = [[0,0,2,0,2,0,2,0,2,0,0],[0,0,0,2,0,2,0,2,0,0,0],[0,0,0,0,2,0,2,0,0,0,0],[0,0,0,0,0,2,0,0,0,0,0]];
+	  			}
+	  			else {
+	  				throwHitPins();
+	  			};
+	  			//scoring logic
+	  			playerThrowScores[currentPlayer].push(throwScore);
+	  			gameScore[currentPlayer] += throwScore;
+				turnScore += throwScore;
+	  			switch (throwScore){		  				
+	  				case 10:
+		  				mark = "X";
+		  				if (turn < 18){
+		  					strike[currentPlayer].push(playerThrowScores[currentPlayer].length + 2);
+		  					throwID += 1;
+		  				};
+		  				strikeOrSpareThisTurn = 1;
+						break;
+	  				case 0:
+	  					mark = "—";
+	  					break;
+	  				default:
+		  				mark = throwScore;
+		  			};
+					if ((turnThrows === 1) && (turnScore === 10)){
+	  					mark = "/";
+	  					strikeOrSpareThisTurn = 1;
+	  					if (turn < 18){
+							spare[currentPlayer].push(playerThrowScores[currentPlayer].length + 1);
+	  					};
+	  				};
+		  		document.getElementById(currentPlayer.toString() + throwID.toString()).innerHTML = mark;
+		  		turnThrows += 1;
+		  		pinsDisplay();
+		  		//we'll hold off doing totals for turns with strikes and spares until their bonus balls are thrown
+		  		if (spare[currentPlayer].indexOf(playerThrowScores[currentPlayer].length)>-1){
+		  				document.getElementById(currentPlayer.toString() + (playerThrows[currentPlayer]-2).toString() + "score").innerHTML = gameScore[currentPlayer];
+		  				gameScore[currentPlayer] += throwScore;
+		  		}
+		  		else if (strike[currentPlayer].indexOf(playerThrowScores[currentPlayer].length)>-1){
+		  				currentPlayerScores = playerThrowScores[currentPlayer];
+		  				var lastID = ((turn - 2) + (turnThrows-2));
+		  				if (lastID%2===0){
+		  					lastID+=1;
+		  				};
+		  				var currentThrow = playerThrows[currentPlayer] - 1;
+		  				document.getElementById(currentPlayer.toString() + lastID.toString() + "score").innerHTML = gameScore[currentPlayer];
+		  				lastTwoScores = (currentPlayerScores[currentThrow] + currentPlayerScores[currentThrow - 1]);
+		  				gameScore[currentPlayer] += lastTwoScores;
+		  		};
+		  		//to total the turn's score
+		  		var turnScoreReport = function(){
+						document.getElementById(currentPlayer.toString() + throwID.toString() + "score").innerHTML = gameScore[currentPlayer];
+		  		};
+
+		  		//a way to transition between players
+		  		var turnOver = function() {
+					bowlButton.setAttribute('value', 'Next Player');
+					bowlButton.onclick = function() {nextTurn()};
+					turnScore = 0;
+					turnThrows = 0;
+		  		};
+		  		//the tenth turn works differently because there are three balls
+		  		if (turn>=18){
+		  			console.log(turnThrows);
+		  			console.log(turnScore);
+			  		if ((turnScore < 10) && (turnThrows === 1)){
+						bowlButton.setAttribute('value', 'Bowl');
+						bowlButton.onclick = function() {bowlThrow()};
+						document.getElementById('partTwo').innerHTML = "throw " + (turnThrows+1).toString() + ".";
+			  		}
+			  		else if ((turnThrows === 2) && (turnScore < 10)){
+			  			if (currentPlayer < players){
+				  			document.getElementById(currentPlayer.toString() + "20" + "score").innerHTML = gameScore[currentPlayer];
+				  			console.log("this");
+				  			turnOver();
+			  			}
+			  			else if (currentPlayer = players){
+			  				console.log("the other thing");
+				  			document.getElementById(currentPlayer.toString() + "20" + "score").innerHTML = gameScore[currentPlayer];
+				  			bowlButton.setAttribute('value', 'Who Won?');
+				  			bowlButton.onclick = function() {gameOver()};
+			  			};
+			  		}
+			  		else if ((turnScore = 10) && (turnThrows <= 2)){
+			  			pinsReset();
+						pinsDisplay();
+						strikeOrSpareThisTurn = 0;
+			  			bowlButton.setAttribute('value', 'Bowl');
+						bowlButton.onclick = function() {bowlThrow()};
+						document.getElementById('partTwo').innerHTML = "throw " + (turnThrows+1).toString() + ".";
+			  		}
+			  		else if ((turnThrows === 3) && (currentPlayer < players)){
+			  			document.getElementById(currentPlayer.toString() + "20" + "score").innerHTML = gameScore[currentPlayer];
+			  			console.log("that");
+			  			turnOver();
+			  		}
+			  		else if (currentPlayer = players){
+			  			document.getElementById(currentPlayer.toString() + "20" + "score").innerHTML = gameScore[currentPlayer];
+			  			bowlButton.setAttribute('value', 'Who Won?');
+			  			bowlButton.onclick = function() {gameOver()};
+					};
+				}
+				//if it's not the tenth turn and you don't bowl a strike you get two balls
+		  		else if ((turnScore < 10) && (turnThrows < 2)){
+					bowlButton.setAttribute('value', 'Bowl');
+					bowlButton.onclick = function() {bowlThrow()};
+					document.getElementById('partTwo').innerHTML = "throw " + (turnThrows + 1).toString() + ".";
+				}
+				//for strikes and spares the logic to report totals happens after a set number of turns, and is written above
+				else if ((strikeOrSpareThisTurn!=0) && (turn < 18)){
+					turnOver();
+				}
+				//at the end of a basic turn, total your score and let the next player play
+				else { 
+					turnScoreReport();
+					turnOver();
+				};
+ 			};
+	 	bowlButton.setAttribute('value', 'Start');
+	 	bowlButton.onclick = function() {nextTurn()};
+	  };
+
+	  //no playing if there's no players. if there are, let's go bowling
+	  var popup = function(players){
+	  	if (players > 0){
+	  		bowling(players);
+	  	}
+	  	else {
+	  		alert("Please choose a number of players");
+	  	};
+	};
+	</script>
+	<div class="mainwrapper">
+		<h1>Let's Go Bowling</h1>
+		<div id="setup">
+			<h3>How many players?</h3> <input type="number" id="players" name="players" min="1" max="4" step="1" value="1"><br>
+			<input type="submit" class="button" id="start" onclick="popup(document.getElementById('players').value)" value="Start!">
+		</div>
+		<div class="game">
+			<div class="headline">
+				<h3><span id="partOne"></span><span id="partTwo"></span>
+			</div>
+			<div id="boardWrap">
+			</div>
+			<div id="gameWrap">
+			</div>
+		</div>
+		<div class="align">
+		<input type="submit" class="button" id="reset" onclick="location.reload(true)" value="Reset">
+		</div>
+	</div>
+</body>
+</html>
